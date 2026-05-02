@@ -42,26 +42,43 @@ async function runSync() {
   console.log("🔍 Iniciando rastreo inteligente avanzado...");
   
   try {
-    // A. Obtener goles de las temporadas recientes
+    // A. Leer el valor actual de Supabase (nunca podemos bajar de este número)
+    const { data: statsActuales } = await supabase
+      .from('estadisticas_globales')
+      .select('total_goles')
+      .eq('id', 1)
+      .single();
+    
+    const golesBase = statsActuales?.total_goles || 970;
+    console.log(`📊 Base actual en Supabase: ${golesBase} goles.`);
+
+    // B. Intentar obtener goles de la API de fútbol (temporadas recientes)
     const seasons = ['2024', '2025', '2026'];
     let golesTotalesRecientes = 0;
 
     for (const season of seasons) {
-      console.log(`📊 Consultando temporada ${season}...`);
-      const statsResp = await axios.get(`https://v3.football.api-sports.io/players?id=${CR7_PLAYER_ID}&season=${season}`, {
-        headers: { 'x-apisports-key': API_FOOTBALL_KEY }
-      });
-
-      if (statsResp.data.response.length > 0) {
-        statsResp.data.response[0].statistics.forEach(s => {
-          golesTotalesRecientes += (s.goals.total || 0);
+      try {
+        const statsResp = await axios.get(`https://v3.football.api-sports.io/players?id=${CR7_PLAYER_ID}&season=${season}`, {
+          headers: { 'x-apisports-key': API_FOOTBALL_KEY },
+          timeout: 5000
         });
+
+        if (statsResp.data.response && statsResp.data.response.length > 0) {
+          statsResp.data.response[0].statistics.forEach(s => {
+            golesTotalesRecientes += (s.goals.total || 0);
+          });
+        }
+      } catch (e) {
+        console.log(`⚠️ No se pudo consultar temporada ${season}: ${e.message}`);
       }
     }
 
-    // Base de 900 (Hito histórico alcanzado en Sept 2024)
-    const totalGlobal = 900 + golesTotalesRecientes;
-    console.log(`⚽ Total calculado (900 base + ${golesTotalesRecientes} recientes): ${totalGlobal} goles.`);
+    // El total de la API: 900 (base pre-AlNassr) + goles recientes
+    const totalDesdeAPI = golesTotalesRecientes > 0 ? (900 + golesTotalesRecientes) : 0;
+    
+    // REGLA CRÍTICA: El contador NUNCA puede bajar. Tomar el mayor valor.
+    const totalGlobal = Math.max(golesBase, totalDesdeAPI);
+    console.log(`⚽ Total final: ${totalGlobal} goles (API: ${totalDesdeAPI}, BD actual: ${golesBase})`);
 
     // B. Generar noticia con IA Detallada
     const noticiaIA = await obtenerComentarioIA(totalGlobal);
