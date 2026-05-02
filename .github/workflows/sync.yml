@@ -1,0 +1,33 @@
+name: CR7 Stats Auto-Sync
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Se ejecuta cada 6 horas
+  workflow_dispatch: # Permite ejecutarlo manualmente desde el botón en GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js axios dotenv
+
+      - name: Run Sync Engine
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: |
+          # Creamos un .env temporal para el script
+          echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" > .env.local
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env.local
+          echo "API_FOOTBALL_KEY=$API_FOOTBALL_KEY" >> .env.local
+          node scripts/sync-engine.js
