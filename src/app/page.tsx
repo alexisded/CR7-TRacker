@@ -1,8 +1,43 @@
 import styles from "./page.module.css";
 import cr7Data from "@/data/cr7-stats.json";
+import { supabase } from "@/lib/supabase";
 
-export default function Home() {
-  const percentage = (cr7Data.totalGoals / 1000) * 100;
+export const revalidate = 60; // Revalidar cada minuto
+
+async function getStats() {
+  try {
+    const { data, error } = await supabase
+      .from('estadisticas_globales')
+      .select('total_goles, meta_goles')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    return { total_goles: cr7Data.totalGoals, meta_goles: 1000 };
+  }
+}
+
+async function getNews() {
+  try {
+    const { data, error } = await supabase
+      .from('noticias')
+      .select('titular, contenido, imagen_url')
+      .order('fecha_publicacion', { ascending: false })
+      .limit(1);
+    
+    if (error) throw error;
+    return data[0];
+  } catch (e) {
+    return null;
+  }
+}
+
+export default async function Home() {
+  const stats = await getStats();
+  const news = await getNews();
+  const totalGoals = stats.total_goles || cr7Data.totalGoals;
+  const percentage = (totalGoals / 1000) * 100;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -10,8 +45,8 @@ export default function Home() {
     "name": "Cristiano Ronaldo",
     "jobTitle": "Professional Footballer",
     "stats": {
-      "totalGoals": cr7Data.totalGoals,
-      "roadTo1000": 1000 - cr7Data.totalGoals
+      "totalGoals": totalGoals,
+      "roadTo1000": 1000 - totalGoals
     }
   };
 
@@ -32,15 +67,15 @@ export default function Home() {
         <section className="glass-card animate-pulse-gold" style={{ textAlign: 'center', marginBottom: '3rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, right: 0, padding: '10px', fontSize: '0.8rem', opacity: 0.5 }}>LIVE STATS</div>
           <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', opacity: 0.6, letterSpacing: '3px' }}>GOLES OFICIALES</h2>
-          <div className="gold-text" style={{ fontSize: '10rem', lineHeight: 1, fontWeight: 900 }}>{cr7Data.totalGoals}</div>
+          <div className="gold-text" style={{ fontSize: '10rem', lineHeight: 1, fontWeight: 900 }}>{totalGoals}</div>
           <div style={{ fontSize: '1.8rem', marginTop: '-15px', opacity: 0.4 }}>CAREER GOALS</div>
           
           <div className="progress-bar-container" style={{ marginTop: '3rem', height: '20px' }}>
             <div className="progress-bar-fill" style={{ width: `${percentage}%` }}></div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontWeight: 'bold', opacity: 0.8 }}>
-            <span>97.0% COMPLETADO</span>
-            <span>FALTAN {1000 - cr7Data.totalGoals} GOLES</span>
+            <span>{(percentage).toFixed(1)}% COMPLETADO</span>
+            <span>FALTAN {1000 - totalGoals} GOLES</span>
           </div>
         </section>
 
@@ -80,22 +115,47 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Match Hub */}
+          {/* News Hub (AI) */}
           <section className="glass-card">
             <h3 className="gold-text" style={{ fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
-              <span style={{ fontSize: '1.8rem', marginRight: '10px' }}>🏟️</span> PARTIDO EN VIVO / PRÓXIMO
+              <span style={{ fontSize: '1.8rem', marginRight: '10px' }}>📰</span> ÚLTIMA HORA (IA)
             </h3>
-            <div style={{ padding: '2rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '15px', border: '1px dashed rgba(255,255,255,0.1)', textAlign: 'center' }}>
-              <div style={{ display: 'inline-block', padding: '4px 12px', background: '#ffcc00', color: '#000', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', marginBottom: '1rem' }}>UPCOMING</div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>vs {cr7Data.nextMatch.opponent}</p>
-              <p style={{ opacity: 0.6 }}>{cr7Data.nextMatch.competition}</p>
-              <div style={{ margin: '1.5rem 0', height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-              <p style={{ fontSize: '0.9rem' }}>
-                {new Date(cr7Data.nextMatch.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
-              <button style={{ marginTop: '1.5rem', padding: '10px 20px', background: 'transparent', border: '1px solid var(--cr7-gold)', color: 'var(--cr7-gold)', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold' }}>
-                NOTIFICARME
-              </button>
+            {news ? (
+              <div>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff' }}>{news.titular}</h4>
+                <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.6' }}>{news.contenido}</p>
+                {news.imagen_url && (
+                  <img src={news.imagen_url} alt="CR7 News" style={{ width: '100%', borderRadius: '8px', marginTop: '1rem', border: '1px solid rgba(255,204,0,0.2)' }} />
+                )}
+              </div>
+            ) : (
+              <p style={{ opacity: 0.5 }}>Cargando últimas noticias del astro...</p>
+            )}
+          </section>
+
+          {/* Historical Goals Section */}
+          <section className="glass-card" style={{ gridColumn: '1 / -1' }}>
+            <h3 className="gold-text" style={{ fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: '1.8rem', marginRight: '10px' }}>📜</span> HITOS HACIA LOS 1000
+            </h3>
+            <div id="historial-goles" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+              {/* Aquí se cargarán los hitos desde Supabase si se implementa un componente cliente, 
+                  o podemos pasarlos por props si los buscamos en el servidor */}
+               <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '4px solid #ffd700' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#ffd700' }}>#970</div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Último hito alcanzado</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '5px' }}>29 de Abril, 2026</div>
+               </div>
+               <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '4px solid #888' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>#950</div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Hito de media centena</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '5px' }}>Diciembre, 2025</div>
+               </div>
+               <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '4px solid #888' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>#900</div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>La entrada a la leyenda</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '5px' }}>Septiembre, 2024</div>
+               </div>
             </div>
           </section>
         </div>

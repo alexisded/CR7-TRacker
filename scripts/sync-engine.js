@@ -58,7 +58,7 @@ async function runSync() {
     // B. Generar noticia con IA Detallada
     const noticiaIA = await obtenerComentarioIA(totalGlobal);
 
-    // D. Actualizar Estadísticas (Forzamos ID 1 pero el sistema es flexible)
+    // D. Actualizar Estadísticas
     await supabase.from('estadisticas_globales').upsert({ 
       id: 1,
       total_goles: totalGlobal, 
@@ -73,6 +73,16 @@ async function runSync() {
       fuente: 'CR7 AI Brain', 
       fecha_publicacion: new Date() 
     }]);
+
+    // F. Actualizar Goles Históricos (Añadir hito si es múltiplo de 10 o el último)
+    if (totalGlobal % 10 === 0 || totalGlobal === 970) {
+      await supabase.from('goles_historicos').upsert({
+        numero_gol: totalGlobal,
+        fecha: new Date().toISOString().split('T')[0],
+        descripcion: `Gol número ${totalGlobal} en su carrera profesional.`,
+        es_hito: true
+      }, { onConflict: 'numero_gol' });
+    }
 
     console.log(`✅ Sincronización Élite: ${totalGlobal} goles registrados.`);
   } catch (err) {

@@ -13,18 +13,17 @@
 
     async function actualizarTrackerCR7() {
         try {
-            // 1. Obtener Estadísticas de Goles
+            // 1. Obtener Estadísticas (Contador Principal)
             const { data: stats, error: errorStats } = await supabase
-                .from('estadisticas_globales')
-                .select('total_goles, meta_goles')
+                .from('v_stats_public') // Intentar vista primero
+                .select('*')
                 .single()
+                .then(res => res.error ? supabase.from('estadisticas_globales').select('*').single() : res) // Fallback a tabla
 
             if (stats && !errorStats) {
-                // Actualizar número de goles (970)
                 const elGoles = document.getElementById('contador-goles');
                 if (elGoles) elGoles.innerText = stats.total_goles;
 
-                // Actualizar lo que falta para 1000 (30)
                 const elMeta = document.getElementById('meta-restante');
                 if (elMeta) elMeta.innerText = stats.meta_goles - stats.total_goles;
             }
@@ -37,12 +36,31 @@
                 .limit(1)
 
             if (news && news[0] && !errorNews) {
-                // Actualizar texto de la noticia
                 const elIA = document.getElementById('ia-titular');
                 if (elIA) elIA.innerText = news[0].titular;
             }
+
+            // 3. Obtener Historial de Goles (NUEVO)
+            const { data: hist, error: errorHist } = await supabase
+                .from('v_historial_public')
+                .select('*')
+                .limit(5)
+                .then(res => res.error ? supabase.from('goles_historicos').select('*').limit(5) : res)
+
+            if (hist && !errorHist) {
+                const elHist = document.getElementById('historial-goles');
+                if (elHist) {
+                    elHist.innerHTML = hist.map(g => `
+                        <div style="border-bottom: 1px solid #333; padding: 10px 0;">
+                            <span style="color: #ffd700; font-weight: bold;">#${g.numero_gol}</span> - 
+                            <span>${g.descripcion || 'Gol oficial'}</span> 
+                            <small style="display: block; color: #888;">${g.fecha}</small>
+                        </div>
+                    `).join('');
+                }
+            }
         } catch (e) {
-            console.error("Error conectando con el Cerebro CR7:", e);
+            console.error("Error en la matriz CR7:", e);
         }
     }
 

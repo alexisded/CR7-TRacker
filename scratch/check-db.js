@@ -31,6 +31,26 @@ async function checkStatus() {
     console.log('\n--- Últimas Noticias (IA) ---');
     news.forEach(n => console.log(`[${n.fecha_publicacion}] ${n.titular}`));
   }
+
+  // Ver goles historicos
+  const { data: hist, error: errHist } = await supabase
+    .from('goles_historicos')
+    .select('*')
+    .order('numero_gol', { ascending: false });
+
+  if (errHist) console.error('Error hist:', errHist);
+  else {
+    console.log('\n--- Goles Históricos ---');
+    hist.forEach(h => console.log(`${h.numero_gol}: ${h.descripcion} (${h.fecha})`));
+  }
+
+  // Ver vistas publicas
+  console.log('\n--- Comprobando Vistas Públicas ---');
+  const { data: vStats, error: errVStats } = await supabase.from('v_stats_public').select('*');
+  console.log('v_stats_public:', errVStats ? errVStats.message : vStats);
+
+  const { data: vHist, error: errVHist } = await supabase.from('v_historial_public').select('*');
+  console.log('v_historial_public:', errVHist ? errVHist.message : vHist);
 }
 
 checkStatus();
