@@ -42,18 +42,26 @@ async function runSync() {
   console.log("🔍 Iniciando rastreo inteligente avanzado...");
   
   try {
-    // A. Obtener goles de la temporada actual
-    const statsResp = await axios.get(`https://v3.football.api-sports.io/players?id=${CR7_PLAYER_ID}&season=2024`, {
-      headers: { 'x-apisports-key': API_FOOTBALL_KEY }
-    });
+    // A. Obtener goles de las temporadas recientes
+    const seasons = ['2024', '2025', '2026'];
+    let golesTotalesRecientes = 0;
 
-    let golesTemporada = 0;
-    if (statsResp.data.response.length > 0) {
-      statsResp.data.response[0].statistics.forEach(s => golesTemporada += (s.goals.total || 0));
+    for (const season of seasons) {
+      console.log(`📊 Consultando temporada ${season}...`);
+      const statsResp = await axios.get(`https://v3.football.api-sports.io/players?id=${CR7_PLAYER_ID}&season=${season}`, {
+        headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+      });
+
+      if (statsResp.data.response.length > 0) {
+        statsResp.data.response[0].statistics.forEach(s => {
+          golesTotalesRecientes += (s.goals.total || 0);
+        });
+      }
     }
 
-    const totalGlobal = 970 + golesTemporada;
-    console.log(`⚽ Total calculado: ${totalGlobal} goles.`);
+    // Base de 900 (Hito histórico alcanzado en Sept 2024)
+    const totalGlobal = 900 + golesTotalesRecientes;
+    console.log(`⚽ Total calculado (900 base + ${golesTotalesRecientes} recientes): ${totalGlobal} goles.`);
 
     // B. Generar noticia con IA Detallada
     const noticiaIA = await obtenerComentarioIA(totalGlobal);
