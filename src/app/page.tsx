@@ -64,22 +64,6 @@ export default async function Home() {
         </header>
 
         {/* Main Counter */}
-        <section className="glass-card animate-pulse-gold" style={{ textAlign: 'center', marginBottom: '3rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, padding: '10px', fontSize: '0.8rem', opacity: 0.5 }}>LIVE STATS</div>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', opacity: 0.6, letterSpacing: '3px' }}>GOLES OFICIALES</h2>
-          <div className="gold-text" style={{ fontSize: '10rem', lineHeight: 1, fontWeight: 900 }}>{totalGoals}</div>
-          <div style={{ fontSize: '1.8rem', marginTop: '-15px', opacity: 0.4 }}>CAREER GOALS</div>
-          
-          <div className="progress-bar-container" style={{ marginTop: '3rem', height: '20px' }}>
-            <div className="progress-bar-fill" style={{ width: `${percentage}%` }}></div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontWeight: 'bold', opacity: 0.8 }}>
-            <span>{(percentage).toFixed(1)}% COMPLETADO</span>
-            <span>FALTAN {1000 - totalGoals} GOLES</span>
-          </div>
-        </section>
-
-        <div className="stats-grid">
           {/* Health & Discipline */}
           <section className="glass-card">
             <h3 className="gold-text" style={{ fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
