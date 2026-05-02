@@ -37,17 +37,22 @@ async function initializeCR7Database() {
     .from('goles_por_equipo')
     .upsert(equipos, { onConflict: 'equipo' });
 
-  // 3. Insertar Estilo de Vida
-  console.log("🥗 Cargando datos de salud y disciplina...");
+  // 3. Estilo de Vida
   const tips = [
     { categoria: 'Recuperación', titulo: 'Crioterapia', descripcion: 'Sesiones de 3 minutos a -160°C.' },
-    { categoria: 'Nutrición', titulo: 'Dieta Pro', descripcion: '6 comidas al día, alta proteína.' },
-    { categoria: 'Mentalidad', titulo: 'Visualización', descripcion: 'Enfoque total antes de cada partido.' }
+    { categoria: 'Nutrición', titulo: 'Dieta Pro', descripcion: '6 comidas al día, alta proteína.' }
   ];
-
   await supabase.from('estilo_vida').upsert(tips, { onConflict: 'titulo' });
 
-  console.log("✅ ¡Todo listo! La base de datos ha sido poblada con la info de CR7.");
+  // 4. Goles Históricos
+  console.log("📜 Poblando hitos históricos...");
+  const hitos = [
+    { numero_gol: 900, fecha: '2024-09-05', rival: 'Croacia', competicion: 'Nations League', equipo: 'Portugal', minuto: 34, tipo_gol: 'Derecha', es_hito: true },
+    { numero_gol: 910, fecha: '2024-10-15', rival: 'Escocia', competicion: 'Nations League', equipo: 'Portugal', minuto: 88, tipo_gol: 'Derecha', es_hito: false }
+  ];
+  await supabase.from('goles_historicos').upsert(hitos, { onConflict: 'numero_gol' });
+
+  console.log("✅ ¡Todo listo! La base de datos ha sido actualizada.");
 }
 
 initializeCR7Database().catch(err => {

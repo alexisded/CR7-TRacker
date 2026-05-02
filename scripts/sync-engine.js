@@ -9,28 +9,37 @@ const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const CR7_PLAYER_ID = '874';
 
 async function obtenerComentarioIA(goles) {
-  console.log("🧠 Consultando al Cerebro IA...");
+  console.log("🧠 Consultando al Cerebro IA para noticia detallada...");
   try {
     const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-      model: "google/gemini-2.0-flash-001", // Modelo rápido y eficiente
+      model: "google/gemini-2.0-flash-001",
       messages: [{ 
         role: "system", 
-        content: "Eres el analista oficial de Cristiano Ronaldo. Genera un titular corto y motivador sobre su progreso a los 1000 goles." 
+        content: "Eres el analista oficial de CR7. Responde SOLO en JSON con este formato: { \"titular\": \"...\", \"resumen\": \"...\", \"imagen_url\": \"...\" }. El resumen debe ser motivador. Inventa una imagen_url de placeholder deportiva si no tienes una." 
       }, { 
         role: "user", 
-        content: `Cristiano ahora tiene ${goles} goles. Genera una noticia corta.` 
+        content: `Cristiano tiene ${goles} goles. Genera la noticia.` 
       }]
     }, {
       headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" }
     });
-    return response.data.choices[0].message.content;
+    
+    // Intentar parsear el JSON de la IA
+    const content = response.data.choices[0].message.content;
+    const jsonStart = content.indexOf('{');
+    const jsonEnd = content.lastIndexOf('}') + 1;
+    return JSON.parse(content.substring(jsonStart, jsonEnd));
   } catch (e) {
-    return `CR7 sigue imparable con ${goles} goles en su cuenta.`;
+    return {
+      titular: `CR7 alcanza los ${goles} goles`,
+      resumen: "El camino a los 1000 sigue firme. Cristiano Ronaldo no se detiene y continúa sumando récords.",
+      imagen_url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1000&auto=format&fit=crop"
+    };
   }
 }
 
 async function runSync() {
-  console.log("🔍 Iniciando rastreo inteligente...");
+  console.log("🔍 Iniciando rastreo inteligente avanzado...");
   
   try {
     // A. Obtener goles de la temporada actual
@@ -43,22 +52,30 @@ async function runSync() {
       statsResp.data.response[0].statistics.forEach(s => golesTemporada += (s.goals.total || 0));
     }
 
-    // B. Calcular total (Base real 970 + goles temporada actual)
     const totalGlobal = 970 + golesTemporada;
     console.log(`⚽ Total calculado: ${totalGlobal} goles.`);
 
-    // C. Generar noticia con IA
-    const comentario = await obtenerComentarioIA(totalGlobal);
+    // B. Generar noticia con IA Detallada
+    const noticiaIA = await obtenerComentarioIA(totalGlobal);
 
-    // D. Actualizar Supabase
-    await supabase.from('estadisticas_globales').update({ total_goles: totalGlobal, ultima_actualizacion: new Date() }).eq('id', 1);
+    // C. Actualizar Estadísticas
+    await supabase.from('estadisticas_globales').update({ 
+      total_goles: totalGlobal, 
+      ultima_actualizacion: new Date() 
+    }).eq('id', 1);
     
-    // Guardar noticia de la IA
-    await supabase.from('noticias').insert([{ titular: comentario, fuente: 'CR7 AI Brain', fecha_publicacion: new Date() }]);
+    // D. Insertar Noticia Completa
+    await supabase.from('noticias').insert([{ 
+      titular: noticiaIA.titular, 
+      contenido: noticiaIA.resumen,
+      imagen_url: noticiaIA.imagen_url,
+      fuente: 'CR7 AI Brain', 
+      fecha_publicacion: new Date() 
+    }]);
 
-    console.log("✅ Sincronización e IA completadas.");
+    console.log("✅ Sincronización avanzada completada.");
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("❌ Error en sync:", err.message);
   }
 }
 
