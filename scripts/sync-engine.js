@@ -58,13 +58,14 @@ async function runSync() {
     // B. Generar noticia con IA Detallada
     const noticiaIA = await obtenerComentarioIA(totalGlobal);
 
-    // C. Actualizar Estadísticas
-    await supabase.from('estadisticas_globales').update({ 
+    // D. Actualizar Estadísticas (Forzamos ID 1 pero el sistema es flexible)
+    await supabase.from('estadisticas_globales').upsert({ 
+      id: 1,
       total_goles: totalGlobal, 
       ultima_actualizacion: new Date() 
-    }).eq('id', 1);
+    });
     
-    // D. Insertar Noticia Completa
+    // E. Insertar Noticia Completa
     await supabase.from('noticias').insert([{ 
       titular: noticiaIA.titular, 
       contenido: noticiaIA.resumen,
@@ -73,9 +74,9 @@ async function runSync() {
       fecha_publicacion: new Date() 
     }]);
 
-    console.log("✅ Sincronización avanzada completada.");
+    console.log(`✅ Sincronización Élite: ${totalGlobal} goles registrados.`);
   } catch (err) {
-    console.error("❌ Error en sync:", err.message);
+    console.error("❌ Error Crítico:", err.message);
   }
 }
 
