@@ -1,0 +1,44 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function GET(request: Request) {
+  // Verificar clave de seguridad para que nadie más active el cron
+  const { searchParams } = new URL(request.url);
+  const authHeader = request.headers.get('authorization');
+  
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new NextResponse('No autorizado', { status: 401 });
+  }
+
+  try {
+    console.log("🔄 Cron Job: Sincronizando goles de CR7...");
+    
+    // Lógica simplificada del sync-engine
+    // Aquí es donde consultamos la API de fútbol (Football-Data.org o similar)
+    // Por ahora, mantenemos la base de 970 y buscamos incrementos
+    
+    const { data: stats } = await supabase
+      .from('estadisticas_globales')
+      .select('total_goles')
+      .eq('id', 1)
+      .single();
+
+    // Simulamos la búsqueda de nuevos goles (aquí iría el fetch a la API real)
+    const nuevosGoles = stats?.total_goles || 970; 
+
+    const { error } = await supabase
+      .from('estadisticas_globales')
+      .upsert({ id: 1, total_goles: nuevosGoles, ultima_actualizacion: new Date().toISOString() });
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, goals: nuevosGoles });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
