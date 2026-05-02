@@ -2,7 +2,7 @@ name: CR7 Stats Auto-Sync
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Se ejecuta cada 6 horas
+    - cron: '0 * * * *' # Se ejecuta cada hora
   workflow_dispatch: # Permite ejecutarlo manualmente desde el botón en GitHub
 
 jobs:
